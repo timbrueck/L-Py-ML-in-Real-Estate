@@ -1,0 +1,218 @@
+---
+title: "My Document"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+execute:
+    echo: false
+jupyter: python3
+---
+
+This document is for learning purposes 
+
+## Sensitivity Analysis - Occupancy
+
+How do the changing parameters Occupancy (Vacancy Rate) and Exit Cap rate (5% - 8% assumed) influence IRR on a property?
+
+```{python}
+
+# | label: sensitivity_analysis_occupancy_cap_rate
+# | fig-cap: "Heatmap showing IRR based on different Occupancy & Cap Rate scenarios"
+# | fig-pos: "H"
+
+import numpy as np
+import numpy_financial as npf
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Assumptions
+purchase_price = 1_000_000
+gross_potential_rent = 100_000
+operating_expenses = 30_000
+holding_period = 10
+
+"""
+Notes
+
+Cap Rate = NOI / Value
+Exit value = NOI final year / Exit Cap Rate
+"""
+
+# Parameters to test
+vacancy_rates = np.arange(0, 0.25, 0.05)   # 0%–20%
+exit_caps = np.arange(0.05, 0.081, 0.005)  # 5%–8% in steps of 0.5%
+
+# Store results
+data = []
+
+for v in vacancy_rates:
+    effective_rent = gross_potential_rent * (1 - v)
+    noi = effective_rent - operating_expenses
+    
+    row = []
+    for cap in exit_caps:
+        exit_value = noi / cap
+        cashflows = [-purchase_price] + [noi] * (holding_period - 1) + [noi + exit_value]
+        irr = npf.irr(cashflows)
+        row.append(irr * 100)  # percentage
+    data.append(row)
+
+df = pd.DataFrame(data, index=[f"{int(v*100)}%" for v in vacancy_rates],
+                  columns=[f"{cap*100:.1f}%" for cap in exit_caps])
+
+print(df)
+
+plt.figure(figsize=(8,6))
+sns.heatmap(df, annot=True, fmt=".2f", cmap="YlGnBu", cbar_kws={'label': 'IRR (%)'})
+plt.title("Sensitivity of IRR to Vacancy Rate and Exit Cap Rate")
+plt.xlabel("Exit Cap Rate")
+plt.ylabel("Vacancy Rate")
+plt.show()
+
+```
+
+
+
+## Rent scenarios
+
+```{python}
+# | label: code-cell-1
+# | fig-cap: "annual rent per year - different vacancy scenarios"
+# | fig-pos: "H"
+
+
+import matplotlib.pyplot as plt
+from datetime import datetime
+import numpy as np
+
+# Data
+
+annual_net_rent = 5000000
+rent_adjustment = 0.02
+
+units = 5000
+vacancy_chances = [0.0, 0.05, 0.1, 0.2]
+
+
+
+# Generate years from current year to +10 years
+current_year = datetime.now().year
+years = list(range(current_year, current_year + 11))  # +11 because range is exclusive at the end
+
+def rent_scenarios(vacancy_chance):
+    rents = []
+    for i in range(len(years)):
+        if i == 0:
+            # First year: full rent, no vacancy applied
+            annual_rent = annual_net_rent
+        else:
+            # Subsequent years: apply growth and vacancy
+            annual_rent = annual_net_rent * (1 + rent_adjustment)**i
+            annual_rent *= (1 - vacancy_chance)
+        
+        rents.append(annual_rent)
+    return rents
+
+
+plt.figure(figsize=(8,5))
+
+zero_loss_rent = [annual_net_rent * (1 + rent_adjustment)**i for i in range(len(years))]
+plt.plot(years, zero_loss_rent, marker='o', linestyle='-', color='green', label='0 loss scenario')
+
+colors = ['orange', 'red', 'purple']
+for vc, color in zip(vacancy_chances[1:], colors):
+    scenario_rent = rent_scenarios(vc)
+    plt.plot(years, scenario_rent, marker='o', linestyle='--', color=color, label=f'{int(vc*100)}% vacancy')
+
+
+plt.title('Annual rent scenarios')
+plt.xlabel('Year')
+plt.ylabel('Rent in (€)')
+plt.grid(True)
+plt.legend()
+
+plt.show()
+
+```
+
+## Rent-scenarios stochastic
+
+Averaging yearly rent with different chances of vacancy - monte carlo simulation 
+
+
+```{python}
+
+# | label: stochastic_rent_scenarios
+# | fig-cap: "rent scenarios - monte carlo simulation"
+# | fig-pos: "H"
+
+
+import matplotlib.pyplot as plt
+from datetime import datetime
+import numpy as np
+
+# Data
+annual_net_rent = 5_000_000
+rent_adjustment = 0.02
+units = 5000
+vacancy_chance = 0.05
+years = list(range(datetime.now().year, datetime.now().year + 11))
+
+# Helper function: single Monte Carlo simulation
+def monte_carlo_rent(vacancy, units, sims=1000):
+    """
+    Returns average rent per year across simulations
+    """
+    rents = []
+    for i in range(len(years)):
+        base_rent = annual_net_rent * (1 + rent_adjustment)**i
+        if i == 0:
+            rents.append(base_rent)
+        else:
+            occupied_units = np.random.rand(sims, units) > vacancy
+            rents.append(base_rent * occupied_units.mean(axis=1).mean())
+    return rents
+
+# Deterministic 0% vacancy scenario
+zero_loss_rent = [annual_net_rent * (1 + rent_adjustment)**i for i in range(len(years))]
+
+# Generate multiple single-run simulations for 5% vacancy
+num_sims = 500
+all_sims = np.array([
+    [annual_net_rent * (1 + rent_adjustment)**i * (np.sum(np.random.rand(units) > vacancy_chance)/units) 
+     if i > 0 else annual_net_rent for i in range(len(years))]
+    for _ in range(num_sims)
+])
+average_rent = all_sims.mean(axis=0)
+
+
+fig, axes = plt.subplots(1, 2, figsize=(16,5))
+
+# Plot 1: 500 Monte Carlo runs with average highlighted
+for sim_rent in all_sims:
+    axes[0].plot(years, sim_rent, color='orange', alpha=0.2)
+axes[0].plot(years, average_rent, marker='o', linestyle='-', color='red', linewidth=2, label='Average rent (5% vacancy)')
+axes[0].plot(years, zero_loss_rent, marker='o', linestyle='-', color='green', label='0 loss scenario')
+axes[0].set_title('500 Monte Carlo Simulations (5% Vacancy)')
+axes[0].set_xlabel('Year')
+axes[0].set_ylabel('Rent (€)')
+axes[0].grid(True)
+axes[0].legend()
+
+# Plot 2:  stochastic average scenarios
+axes[1].plot(years, zero_loss_rent, marker='o', linestyle='-', color='green', label='0 loss scenario')
+for vc, color in zip([0.05, 0.1, 0.2], ['orange', 'red', 'purple']):
+    scenario_rent = monte_carlo_rent(vc, units)
+    axes[1].plot(years, scenario_rent, marker='o', linestyle='--', color=color, label=f'{int(vc*100)}% vacancy per unit')
+axes[1].set_title('Stochastic Rent Scenarios')
+axes[1].set_xlabel('Year')
+axes[1].set_ylabel('Rent (€)')
+axes[1].grid(True)
+axes[1].legend()
+
+plt.tight_layout()
+plt.show()
+```
