@@ -10,6 +10,68 @@ jupyter: python3
 
 This document is for learning purposes 
 
+### Sensitivity Analysis - Occupancy
+
+How do the changing parameters Occupancy (Vacancy Rate) and Exit Cap rate (5% - 8% assumed) influence IRR on a property?
+
+```{python}
+
+# | label: sensitivity_analysis_occupancy_cap_rate
+# | fig-cap: "Heatmap showing IRR based on different Occupancy & Cap Rate scenarios"
+
+import numpy as np
+import numpy_financial as npf
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Assumptions
+purchase_price = 1_000_000
+gross_potential_rent = 100_000
+operating_expenses = 30_000
+holding_period = 10
+
+"""
+Notes
+
+Cap Rate = NOI / Value
+Exit value = NOI final year / Exit Cap Rate
+"""
+
+# Parameters to test
+vacancy_rates = np.arange(0, 0.25, 0.05)   # 0%–20%
+exit_caps = np.arange(0.05, 0.081, 0.005)  # 5%–8% in steps of 0.5%
+
+# Store results
+data = []
+
+for v in vacancy_rates:
+    effective_rent = gross_potential_rent * (1 - v)
+    noi = effective_rent - operating_expenses
+    
+    row = []
+    for cap in exit_caps:
+        exit_value = noi / cap
+        cashflows = [-purchase_price] + [noi] * (holding_period - 1) + [noi + exit_value]
+        irr = npf.irr(cashflows)
+        row.append(irr * 100)  # percentage
+    data.append(row)
+
+df = pd.DataFrame(data, index=[f"{int(v*100)}%" for v in vacancy_rates],
+                  columns=[f"{cap*100:.1f}%" for cap in exit_caps])
+
+print(df)
+
+plt.figure(figsize=(8,6))
+sns.heatmap(df, annot=True, fmt=".2f", cmap="YlGnBu", cbar_kws={'label': 'IRR (%)'})
+plt.title("Sensitivity of IRR to Vacancy Rate and Exit Cap Rate")
+plt.xlabel("Exit Cap Rate")
+plt.ylabel("Vacancy Rate")
+plt.show()
+
+```
+
+
 
 ## Rent scenarios
 
@@ -146,53 +208,4 @@ axes[1].legend()
 
 plt.tight_layout()
 plt.show()
-```
-
-### Sensitivity Analysis - Occupancy
-
-```{python}
-
-import numpy as np
-import numpy_financial as npf
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Assumptions
-purchase_price = 1_000_000
-gross_potential_rent = 100_000
-operating_expenses = 30_000
-holding_period = 10
-
-# Parameters to test
-vacancy_rates = np.arange(0, 0.25, 0.05)   # 0%–20%
-exit_caps = np.arange(0.05, 0.081, 0.005)  # 5%–8% in steps of 0.5%
-
-# Store results
-data = []
-
-for v in vacancy_rates:
-    effective_rent = gross_potential_rent * (1 - v)
-    noi = effective_rent - operating_expenses
-    
-    row = []
-    for cap in exit_caps:
-        exit_value = noi / cap
-        cashflows = [-purchase_price] + [noi] * (holding_period - 1) + [noi + exit_value]
-        irr = npf.irr(cashflows)
-        row.append(irr * 100)  # percentage
-    data.append(row)
-
-df = pd.DataFrame(data, index=[f"{int(v*100)}%" for v in vacancy_rates],
-                  columns=[f"{cap*100:.1f}%" for cap in exit_caps])
-
-print(df)
-
-plt.figure(figsize=(8,6))
-sns.heatmap(df, annot=True, fmt=".2f", cmap="YlGnBu", cbar_kws={'label': 'IRR (%)'})
-plt.title("Sensitivity of IRR to Vacancy Rate and Exit Cap Rate")
-plt.xlabel("Exit Cap Rate")
-plt.ylabel("Vacancy Rate")
-plt.show()
-
 ```
