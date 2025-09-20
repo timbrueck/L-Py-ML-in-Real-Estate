@@ -1,0 +1,14 @@
+---
+title: Quarto Computations
+format: 
+    html:
+        code-fold: true
+execute:
+    echo: false
+jupyter: python3
+---
+
+This document is for learning purposes 
+
+ 
+
