@@ -1,0 +1,95 @@
+---
+title: "Notes - Exploring Data Science and Machine Learning Use Cases in Real Estate & Statistical Learning in Python"
+author: "Tim Brück"
+date: "20 September 2025"
+format:
+  pdf:
+    documentclass: article       # simple, professional
+    fontsize: 11pt              # clear but not huge
+    geometry: margin=1.8cm      # smaller side margins, balanced layout
+    toc: true                    # table of contents
+    number-sections: true        # numbered headings
+    colorlinks: true             # clickable links
+    linkcolor: blue
+    citecolor: blue
+execute:
+  echo: false                    # hides code by default; change to true if showing code
+jupyter: python3                # if using Python chunks
+fontsize: 11pt
+mainfont: "Arial"               # modern, clean font
+sansfont: "Arial"
+monofont: "Courier New"         # for code chunks
+linestretch: 1.2                # slightly more spacing between lines for readability
+---
+
+
+# How to apply Data Science and Machine Learning to Real Estate
+
+[Nelson Lau - How to apply Data Science and ML to Real Estate](https://www.youtube.com/watch?v=rSQvso6fD-c)
+
+## Property Price Indices
+
+Challenge: Transaction price data for the same property is not available at regular intervals. Only infrequent transaction data on heterogeneous properties. 
+
+Idea: Producing an idea of market performance and controlling for quality differences using statistical methods.
+
+## Automated Valuation Models
+
+self explainatory
+
+## Time series Forecasting
+
+Methodology: ARIMA | VAR | VECM | ML
+
+possible (relevant) future values to forecast
+- Macroeconomic data
+- property market data
+
+## Cluster Analysis
+
+### Clustering Properties
+
+Grouping properties or locations based on similar characteristics
+
+Use Cases:
+
+- Checking for grade of diversification in a portfolio
+  - diversifying between many clusters
+- Detecting under- / overvalued properties
+- Analyzing buyer- / seller-patterns
+
+### Clustering macro-economic conditions
+
+Use Cases:
+
+- producing a property market cycle analysis
+  - clustering marcro-economic conditions and rating them to identify the current spot in the market cycle and acting accordingly
+
+## Geospatial Analysis
+
+Studying location factors 
+- e.g. producing a heat map for attractiveness of different locations
+  - applicable for different types of property 
+- showcasing coverage / density of certain properties
+- rain-, light- intensity in different locations
+
+A lot of use cases in both the application in valuation models and site selection
+
+## Further
+
+### Computer Vision
+
+- e.g. implementing computer vision to gain more detailed information for valuation models
+- checking condition of amenities in public listings
+- Training valuation models accordingly
+
+### Floor plan analytics
+  
+- Evaluate floor plan layouts
+  - Commercial real estate: optimize space utilization and efficiency
+  - Residential real estate: maximize rentable area and assign value based on layout quality
+
+# An Introduction to statistical Learning with Applications in Python
+
+[Gareth James, Daniela Witten, Trevor Hastie, Rob Tibshirani, Jonathan Taylor - An Introduction to statistical Learning](https://www.statlearning.com)
+
